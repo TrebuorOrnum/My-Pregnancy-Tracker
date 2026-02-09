@@ -1,5 +1,6 @@
 <!DOCTYPE html><html lang="en">
-<head>
+<head> <link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#f48fb1">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>My Pregnancy Companion</title><meta name="theme-color" content="#f48fb1"><style>
@@ -284,16 +285,10 @@ setInterval(()=>new Notification("Pregnancy Update ❤️",
 }
 
 /* ---------- service worker (auto) ---------- */
-if('serviceWorker'in navigator){
-const sw=`
-self.addEventListener('install',e=>{
-e.waitUntil(caches.open('preg-cache').then(c=>c.addAll(['./'])));
-});
-self.addEventListener('fetch',e=>{
-e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request)));
-});`;
-navigator.serviceWorker.register(URL.createObjectURL(new Blob([sw],{type:'text/javascript'})));
-}
 
+ <script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('service-worker.js');
+}
 </script></body>
 </html>
