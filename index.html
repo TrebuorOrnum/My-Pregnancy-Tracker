@@ -1,0 +1,297 @@
+<!DOCTYPE html><html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Pregnancy Companion</title><meta name="theme-color" content="#f48fb1"><style>
+body{
+font-family:Arial;
+background:#fde4ec;
+margin:0;
+text-align:center;
+}
+
+.container{
+max-width:420px;
+margin:auto;
+padding:15px;
+}
+
+h1{color:#ad1457;}
+
+.tabs{
+display:flex;
+flex-wrap:wrap;
+gap:6px;
+margin:10px 0;
+}
+
+.tabs button{
+flex:1;
+background:#ec407a;
+color:white;
+border:none;
+padding:10px;
+border-radius:12px;
+font-size:14px;
+}
+
+.tab{display:none;}
+.tab.active{display:block;}
+
+input,button{
+width:100%;
+padding:12px;
+margin-top:8px;
+border-radius:10px;
+border:1px solid #ccc;
+font-size:15px;
+}
+
+.progressBar{
+width:100%;
+height:22px;
+background:#f8bbd0;
+border-radius:20px;
+margin-top:10px;
+overflow:hidden;
+}
+
+#progressFill{
+height:100%;
+width:0%;
+background:#ad1457;
+}
+
+canvas{
+margin-top:15px;
+background:white;
+border-radius:15px;
+box-shadow:0 4px 8px rgba(0,0,0,0.2);
+}
+
+ul{padding:0;}
+li{
+list-style:none;
+background:white;
+margin:5px 0;
+padding:10px;
+border-radius:10px;
+}
+.small{
+font-size:12px;
+margin-top:20px;
+}
+</style></head><body>
+<div class="container"><h1>Pregnancy Companion</h1><button onclick="setLang('en')">English</button>
+<button onclick="setLang('af')">Afrikaans</button>
+<button onclick="enableNotifications()">Enable Daily Updates</button>
+
+<div class="tabs">
+<button onclick="showTab('tracker')">Tracker</button>
+<button onclick="showTab('kicks')">Kicks</button>
+<button onclick="showTab('contractions')">Labor</button>
+<button onclick="showTab('appointments')">Appointments</button>
+<button onclick="showTab('partner')">Partner</button>
+</div><!-- TRACKER --><div id="tracker" class="tab"><label>First Day of Last Period</label>
+<input type="date" id="lmpDate">
+<button onclick="calculate()">Calculate</button>
+
+<h2 id="weekText"></h2>
+<h3 id="trimesterText"></h3>
+<h3 id="dueDate"></h3><div class="progressBar"><div id="progressFill"></div></div><h2 id="sizeText"></h2>
+<canvas id="babyCanvas" width="260" height="260"></canvas>
+<p id="infoText"></p></div><!-- KICKS --><div id="kicks" class="tab">
+<h2>Kick Counter</h2>
+<h3 id="kickCount">0 kicks today</h3>
+<button onclick="addKick()">Baby Kicked!</button>
+<button onclick="resetKicks()">Reset</button>
+</div><!-- CONTRACTIONS --><div id="contractions" class="tab">
+<h2>Contraction Timer</h2>
+<h3 id="timer">00:00</h3>
+<button onclick="startContraction()">Start</button>
+<button onclick="stopContraction()">Stop</button>
+<p id="interval"></p>
+</div><!-- APPOINTMENTS --><div id="appointments" class="tab">
+<h2>Appointments</h2>
+<input type="date" id="apptDate">
+<input type="text" id="apptNote" placeholder="Doctor / Clinic">
+<button onclick="addAppointment()">Save</button>
+<ul id="apptList"></ul>
+</div><!-- PARTNER --><div id="partner" class="tab">
+<h2>Partner Mode</h2>
+<p id="partnerText"></p>
+</div><p class="small">
+This app is for educational purposes only and not a substitute for medical advice.
+Always consult a healthcare professional.
+</p></div><script>
+
+/* ---------- language ---------- */
+let lang=localStorage.getItem("lang")||"en";
+function setLang(l){localStorage.setItem("lang",l);location.reload();}
+
+/* ---------- tabs ---------- */
+function showTab(id){
+document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+document.getElementById(id).classList.add("active");
+}
+window.onload=()=>{showTab('tracker');loadAppointments();loadKicks();};
+
+/* ---------- pregnancy data ---------- */
+const weeks={
+6:{size:"Lentil",info:"Baby's heart begins beating."},
+8:{size:"Kidney Bean",info:"Arms and legs are forming."},
+12:{size:"Plum",info:"Baby can move and swallow."},
+16:{size:"Avocado",info:"Skeleton strengthening."},
+20:{size:"Banana",info:"Halfway there!"},
+24:{size:"Corn",info:"Sleep cycles begin."},
+28:{size:"Eggplant",info:"Brain growing fast."},
+32:{size:"Squash",info:"Practicing breathing."},
+36:{size:"Lettuce",info:"Almost full term."},
+40:{size:"Pumpkin",info:"Ready for birth!"}
+};
+
+/* ---------- pregnancy calculator ---------- */
+function calculate(){
+
+const lmp=new Date(document.getElementById("lmpDate").value);
+if(!lmp)return;
+
+const today=new Date();
+const days=Math.floor((today-lmp)/(1000*60*60*24));
+const week=Math.floor(days/7);
+
+const due=new Date(lmp);
+due.setDate(due.getDate()+280);
+
+let trimester=week<=12?"1st Trimester":week<=27?"2nd Trimester":"3rd Trimester";
+
+document.getElementById("weekText").innerText="Week "+week;
+document.getElementById("trimesterText").innerText=trimester;
+document.getElementById("dueDate").innerText=(lang=="af"?"Verwagte sperdatum: ":"Estimated Due Date: ")+due.toDateString();
+
+document.getElementById("progressFill").style.width=Math.min((days/280)*100,100)+"%";
+
+let nearest=Object.keys(weeks).reduce((a,b)=>Math.abs(b-week)<Math.abs(a-week)?b:a);
+let data=weeks[nearest];
+
+document.getElementById("sizeText").innerText="Baby is about the size of a "+data.size;
+document.getElementById("infoText").innerText=data.info;
+
+partnerMessage(week);
+drawBaby(week);
+}
+
+/* ---------- baby drawing ---------- */
+function drawBaby(week){
+const ctx=document.getElementById("babyCanvas").getContext("2d");
+ctx.clearRect(0,0,260,260);
+let scale=Math.min(week*3,120);
+
+ctx.fillStyle="#f8bbd0";
+ctx.beginPath();
+ctx.arc(130,130,scale/2,0,Math.PI*2);
+ctx.fill();
+
+ctx.beginPath();
+ctx.arc(130,90,scale/3,0,Math.PI*2);
+ctx.fill();
+
+ctx.fillStyle="#000";
+ctx.beginPath();
+ctx.arc(115,85,3,0,Math.PI*2);
+ctx.arc(145,85,3,0,Math.PI*2);
+ctx.fill();
+}
+
+/* ---------- kick counter ---------- */
+function loadKicks(){
+const today=new Date().toDateString();
+let data=JSON.parse(localStorage.getItem("kicks")||"{}");
+document.getElementById("kickCount").innerText=(data[today]||0)+" kicks today";
+}
+function addKick(){
+const today=new Date().toDateString();
+let data=JSON.parse(localStorage.getItem("kicks")||"{}");
+data[today]=(data[today]||0)+1;
+localStorage.setItem("kicks",JSON.stringify(data));
+loadKicks();
+}
+function resetKicks(){localStorage.removeItem("kicks");loadKicks();}
+
+/* ---------- contraction timer ---------- */
+let startTime,lastContraction=0,timerInt;
+function startContraction(){
+startTime=Date.now();
+timerInt=setInterval(()=>{
+let d=Math.floor((Date.now()-startTime)/1000);
+let m=String(Math.floor(d/60)).padStart(2,'0');
+let s=String(d%60).padStart(2,'0');
+document.getElementById("timer").innerText=m+":"+s;
+},1000);
+}
+function stopContraction(){
+clearInterval(timerInt);
+let now=Date.now();
+if(lastContraction){
+let gap=Math.floor((now-lastContraction)/60000);
+document.getElementById("interval").innerText="Interval: "+gap+" minutes";
+}
+lastContraction=now;
+}
+
+/* ---------- appointments ---------- */
+function loadAppointments(){
+let list=document.getElementById("apptList");
+list.innerHTML="";
+let appts=JSON.parse(localStorage.getItem("appointments")||"[]");
+appts.forEach(a=>{
+let li=document.createElement("li");
+li.innerText=a.date+" - "+a.note;
+list.appendChild(li);
+});
+}
+function addAppointment(){
+let date=document.getElementById("apptDate").value;
+let note=document.getElementById("apptNote").value;
+let appts=JSON.parse(localStorage.getItem("appointments")||"[]");
+appts.push({date,note});
+localStorage.setItem("appointments",JSON.stringify(appts));
+loadAppointments();
+}
+
+/* ---------- partner mode ---------- */
+function partnerMessage(week){
+const msgs=[
+"Help with chores this week.",
+"Attend clinic visit together.",
+"Talk to the baby!",
+"Prepare hospital bag.",
+"Encourage and support mom."
+];
+document.getElementById("partnerText").innerText=msgs[week%msgs.length];
+}
+
+/* ---------- notifications ---------- */
+async function enableNotifications(){
+if(!("Notification"in window))return;
+let perm=await Notification.requestPermission();
+if(perm==="granted"){
+setInterval(()=>new Notification("Pregnancy Update ❤️",
+{body:"Check this week's baby development!"}),86400000);
+}
+}
+
+/* ---------- service worker (auto) ---------- */
+if('serviceWorker'in navigator){
+const sw=`
+self.addEventListener('install',e=>{
+e.waitUntil(caches.open('preg-cache').then(c=>c.addAll(['./'])));
+});
+self.addEventListener('fetch',e=>{
+e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request)));
+});`;
+navigator.serviceWorker.register(URL.createObjectURL(new Blob([sw],{type:'text/javascript'})));
+}
+
+</script></body>
+</html>
