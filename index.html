@@ -281,14 +281,14 @@ let perm=await Notification.requestPermission();
 if(perm==="granted"){
 setInterval(()=>new Notification("Pregnancy Update ❤️",
 {body:"Check this week's baby development!"}),86400000);
-}
-}
-
+}}
 /* ---------- service worker (auto) ---------- */
-
- <script>
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('service-worker.js');
+window.addEventListener('load', () => {
+navigator.serviceWorker.register('./service-worker.js');
+});
 }
-</script></body>
+</script>
+
+</body>
 </html>

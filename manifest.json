@@ -1,12 +1,12 @@
 {
 "name": "Pregnancy Companion",
 "short_name": "Pregnancy",
-"start_url": "/My-Pregnancy-Tracker/",
+"start_url": "https://trebuorornum.github.io/My-Pregnancy-Tracker/",
 "display": "standalone",
 "background_color": "#fde4ec",
 "theme_color": "#f48fb1",
 "orientation": "portrait",
-"scope": "/My-Pregnancy-Tracker/",
+"scope": "https://trebuorornum.github.io/My-Pregnancy-Tracker/",
 "icons": [
 {
 "src": "icon-512.png",
